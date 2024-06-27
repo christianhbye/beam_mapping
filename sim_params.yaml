@@ -1,0 +1,13 @@
+lmax : 128
+world : "earth"
+fmin : 50
+fmax : 100
+nchan : 50
+t_start : "2024-10-01T00:00:00"
+ntimes : 240
+lon : -133
+lat : 39
+nside : 64
+epsilon : 0.001
+height : 100
+T_bb : 300
