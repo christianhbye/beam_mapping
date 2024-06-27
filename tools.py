@@ -42,10 +42,10 @@ class Simulator:
         self.topo = topo_class(obstime=time, location=loc)
 
         self.theta = s2fft.sampling.s2_samples.thetas(
-            L=self.lmax+1, sampling="mwss"
+            L=self.lmax + 1, sampling="mwss"
         )
         self.phi = s2fft.sampling.s2_samples.phis_equiang(
-            L=self.lmax+1, sampling="mwss"
+            L=self.lmax + 1, sampling="mwss"
         )
 
         dt = cro.constants.sidereal_day[self.world] / self.ntimes
@@ -53,10 +53,10 @@ class Simulator:
             self.lmax, self.ntimes, dt, world=self.world
         )
 
-        horizon = jnp.where(self.theta < jnp.pi/2, 1, 0)
+        horizon = jnp.where(self.theta < jnp.pi / 2, 1, 0)
         ones = jnp.ones((self.freq.size, self.theta.size, self.phi.size))
         self.horizon = horizon[None, :, None] * ones
-       
+
         # scattering parameters
         self.epsilon = config["epsilon"]
         c = 299792458  # speed of light in m/s
@@ -69,20 +69,18 @@ class Simulator:
         self.clebsch = None  # XXX
         self.get_horizon_coeffs()
 
-       
-
     def beam(self, return_xy=False):
         phi, theta = jnp.meshgrid(self.phi, self.theta)
         x = jnp.sin(theta) * jnp.cos(phi)
         y = jnp.sin(theta) * jnp.sin(phi)
         z = jnp.cos(theta)
-        beamX = (y**2 + z**2) ** (3/2)
-        beamY = (x**2 + z**2) ** (3/2)
+        beamX = (y**2 + z**2) ** (3 / 2)
+        beamY = (x**2 + z**2) ** (3 / 2)
 
         if return_xy:
             return beamX, beamY
 
-        return 1/2 * (beamX + beamY)
+        return 1 / 2 * (beamX + beamY)
 
     @property
     def topo2eq(self):
@@ -92,7 +90,7 @@ class Simulator:
 
         return partial(
             s2fft.utils.rotation.rotate_flms,
-            L=self.lmax+1,
+            L=self.lmax + 1,
             rotation=eul,
             dl_array=dl,
         )
@@ -100,12 +98,14 @@ class Simulator:
     @property
     def gal2eq(self):
         eul, dl = crojax.rotations.generate_euler_dl(
-            self.lmax, "galactic", self.eq_frame,
+            self.lmax,
+            "galactic",
+            self.eq_frame,
         )
 
         return partial(
             s2fft.utils.rotation.rotate_flms,
-            L=self.lmax+1,
+            L=self.lmax + 1,
             rotation=eul,
             dl_array=dl,
         )
@@ -114,7 +114,7 @@ class Simulator:
     def mwss2alm(self):
         return partial(
             s2fft.forward_jax,
-            L=self.lmax+1,
+            L=self.lmax + 1,
             spin=0,
             nside=None,
             sampling="mwss",
@@ -125,7 +125,7 @@ class Simulator:
     def hp2alm(self):
         return partial(
             s2fft.forward_jax,
-            L=self.lmax+1,
+            L=self.lmax + 1,
             spin=0,
             nside=self.nside,
             sampling="healpix",
@@ -136,7 +136,6 @@ class Simulator:
         hlm = jax.vmap(self.mwss2alm)(self.horizon)
         self.hlm = jax.vmap(self.topo2eq)(hlm)
         h_clebsch = jnp.einsum("abcdef, ef -> abcd", self.clebsch, self.hlm)
-
 
     def compute_alms(self, beam, sky):
         """
@@ -183,7 +182,7 @@ class Simulator:
         tlm = jnp.einsum("tfij, lmij -> tflm", sky_phase, self.h_clebsch)
         tlm -= t_const * self.hlm.conj()[None]
         return tlm, t_const
-    
+
     @jax.jit
     def compute_t_ant(self, alm, blm):
         tlm, t_const = self.compute_tlm(blm)
@@ -191,4 +190,3 @@ class Simulator:
         norm = crojax.alm.total_power(alm, self.lmax)
         t_ant = t_ant / norm + t_const
         return t_ant
-
